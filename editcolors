@@ -1,0 +1,115 @@
+#!/usr/local/bin/perl -w
+#
+# editcolors
+# author: Russ Burdick <grub@extrapolation.net>
+#
+# searches blackbox styles for lines with 'color', extracts the the 
+# color from the line (in any format), then prints a list of
+# non-duplicate colors found. allows you to change all occurences of 
+# each color found with a new value and write out a modified version of 
+# the style.
+#
+# Copyright (C) 2002-2004 Russ Burdick, grub@extrapolation.net
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+
+
+if ($#ARGV != 1) { error("usage: editcolors infile outfile\n"); }
+
+open INFILE, $ARGV[0] || error($!);
+
+my $name;
+my $value;
+my @colors;
+my %counts;
+my %colorhash;
+my $done = 0;
+my $cmd;
+my @style;
+
+while(<INFILE>) {
+   chomp;
+   push @style, $_ . "\n";
+   if (m/color/i) {
+      ($name, $value) = split(":", $_, 2);
+      $value =~ s/^[ \t]+//;
+      if (! $colorhash{$value}) {
+         $colorhash{$value} = "1";
+         push @colors, $value;
+         $counts{$value} = 1;
+      } else {
+         $counts{$value}++;
+      }
+   }
+}
+
+close INFILE;
+
+&list;
+while ($done == 0) {
+   print "\nchange which color? ('s' to save, 'p' to print colors";
+   print ", 'q' to quit)\n> ";
+   $cmd = <STDIN>;
+   chomp $cmd;
+
+   if ($cmd =~ /^p$/i) {
+      &list;
+   } elsif ($cmd =~ /^s$/i) {
+      open OUTFILE, ">$ARGV[1]" || error($!);
+      foreach $line (@style) {
+         if ($line =~ m/color/i) {
+            foreach $key (keys %colorhash) {
+               if ($colorhash{$key} ne "1") {
+                  if ($line =~ m/$key/) {
+                     $line =~ s/$key/$colorhash{$key}/;
+                  }
+               }
+            }
+         }
+         print OUTFILE $line;
+      }
+      close OUTFILE;
+      print "$ARGV[1] written\n";
+   } elsif ($cmd =~ /^q$/i) {
+      $done = 1;
+   } else {
+      if ($cmd <= $#colors) {
+         print "enter new color: ";
+         $colorhash{$colors[$cmd]} = <STDIN>;
+         chomp $colorhash{$colors[$cmd]};
+      }
+   }
+}
+
+sub error {
+    print "Error: $_[0]\n";
+    exit;
+}
+
+sub list {
+   print "\nthe colors found in the style file were:\n";
+   print "\n    Colors\t\t [times used]\t\tnewColor\n";
+   my $i = 0;
+   for(@colors) {
+      printf "%2d: %-20s [x%d]", $i, $_, $counts{$_};
+      if ($colorhash{$colors[$i]} eq "1") {
+         print "\n";
+      } else {
+         print "\t\t\t$colorhash{$colors[$i]}\n"
+      }
+      $i++;
+   }
+}

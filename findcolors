@@ -1,0 +1,54 @@
+#!/opt/gnu/bin/perl -w
+#
+# findcolor
+# author: Russ Burdick <grub@extrapolation.net>
+#
+# searches blackbox styles for lines with 'color', extracts the the 
+# color from the line (in any format), then prints a list of
+# non-duplicate colors found.
+#
+# Copyright (C) 2002-2004 Russ Burdick, grub@extrapolation.net
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.   
+#
+
+
+if ($#ARGV != 0) { error("usage: findcolors infile\n"); }
+
+open INFILE, $ARGV[0] || error($!);
+
+my $name;
+my $value;
+my %colors;
+
+while(<INFILE>) {
+   chomp;
+   if (m/color/i) {
+      ($name, $value) = split(":", $_, 2);
+      $value =~ s/^[ \t]+//;
+      if (! $colors{$value}) {
+         $colors{$value}++;
+         print $value, "\n";
+      }
+   }
+}
+
+close INFILE;
+
+sub error {
+    print "Error: $_[0]\n";
+    exit;
+}
+
